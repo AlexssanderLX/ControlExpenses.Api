@@ -1,0 +1,32 @@
+# ===== Visual Studio =====
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ===== Build results =====
+bin/
+obj/
+
+# ===== .NET =====
+*.dll
+*.exe
+*.pdb
+*.cache
+
+# ===== Logs =====
+*.log
+
+# ===== SQLite (banco local) =====
+*.db
+*.db-shm
+*.db-wal
+
+# ===== Rider / VS Code =====
+.idea/
+.vscode/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
