@@ -1,6 +1,8 @@
 ﻿namespace ControlExpenses.Api.Enums
 {
-    public class TipoTransacao
+    public enum TipoTransacao
     {
+        Despesa = 0,
+        Receita = 1,
     }
 }
