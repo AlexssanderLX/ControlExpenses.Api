@@ -36,6 +36,14 @@ namespace ControlExpenses.Api.Controllers
             var result = await _service.ListarAsync();
             return Ok(result);
         }
+
+        [HttpGet("relatorio")]
+        public async Task<IActionResult> Relatorio()
+        {
+            var result = await _service.GerarRelatorioAsync();
+            return Ok(result);
+        }
+
     }
 }
 

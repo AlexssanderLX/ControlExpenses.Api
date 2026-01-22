@@ -24,26 +24,26 @@ namespace ControlExpenses.Api.Services
                 .FirstOrDefaultAsync(p => p.Id == dto.PessoaId);
 
             if (pessoa is null)
-                throw new ArgumentException("Pessoa não encontrada.");
+                throw new BusinessExceptions("Pessoa não encontrada.");
 
             // Garantir existência da categoria
             var categoria = await _context.Categorias
                 .FirstOrDefaultAsync(c => c.Id == dto.CategoriaId);
 
             if (categoria is null)
-                throw new ArgumentException("Categoria não encontrada.");
+                throw new BusinessExceptions("Categoria não encontrada.");
 
             // Menor de idade só pode registrar despesas
             if (pessoa.Idade < 18 && dto.Tipo == TipoTransacao.Receita)
-                throw new ArgumentException("Pessoa menor de idade só pode registrar despesas.");
+                throw new BusinessExceptions("Pessoa menor de idade só pode registrar despesas.");
 
             // Categoria deve ser compatível com o tipo da transação
             if (dto.Tipo == TipoTransacao.Despesa && categoria.Finalidade == FinalidadeCategoria.Receita)
-                throw new ArgumentException("Categoria com finalidade 'Receita' não pode ser usada em uma despesa.");
+                throw new BusinessExceptions("Categoria com finalidade 'Receita' não pode ser usada em uma despesa.");
 
             // Se transação é Receita, categoria não pode ser Despesa
             if (dto.Tipo == TipoTransacao.Receita && categoria.Finalidade == FinalidadeCategoria.Despesa)
-                throw new ArgumentException("Categoria com finalidade 'Despesa' não pode ser usada em uma receita.");
+                throw new BusinessExceptions("Categoria com finalidade 'Despesa' não pode ser usada em uma receita.");
 
             // Criação da entidade via construtor (mantém encapsulamento com private set)
             var transacao = new Transacao(
@@ -66,6 +66,43 @@ namespace ControlExpenses.Api.Services
                 Tipo = transacao.Tipo,
                 PessoaId = transacao.PessoaId,
                 CategoriaId = transacao.CategoriaId
+            };
+        }
+
+        public async Task<object> GerarRelatorioAsync()
+        {
+            var dados = await _context.Transacoes
+                .AsNoTracking()
+                .Include(t => t.Pessoa)
+                .ToListAsync();
+
+            var porPessoa = dados
+                .GroupBy(t => new { t.PessoaId, t.Pessoa!.Nome })
+                .Select(g => new
+                {
+                    PessoaId = g.Key.PessoaId,
+                    Nome = g.Key.Nome,
+
+                    TotalReceitas = g.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor),
+                    TotalDespesas = g.Where(t => t.Tipo == TipoTransacao.Despesa).Sum(t => t.Valor),
+                    Saldo = g.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor)
+                          - g.Where(t => t.Tipo == TipoTransacao.Despesa).Sum(t => t.Valor)
+                })
+                .OrderBy(x => x.Nome)
+                .ToList();
+
+            var totalGeralReceitas = porPessoa.Sum(x => x.TotalReceitas);
+            var totalGeralDespesas = porPessoa.Sum(x => x.TotalDespesas);
+
+            return new
+            {
+                PorPessoa = porPessoa,
+                TotalGeral = new
+                {
+                    Receitas = totalGeralReceitas,
+                    Despesas = totalGeralDespesas,
+                    Saldo = totalGeralReceitas - totalGeralDespesas
+                }
             };
         }
 
